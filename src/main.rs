@@ -9,10 +9,10 @@ use std::{
 };
 
 // Import folder is hard-coded to "C:\Users\Chris Petkau\Downloads".
-const IMPORT_FOLDER: &str = "C:\\Users\\Chris Petkau\\Downloads";
+const IMPORT_FOLDER: &str = "C:/Users/Chris Petkau/Downloads";
 
 // Export folder is hard-coded to "C:\src\qmk_firmware\keyboards\moonlander\keymaps\chrispetkau".
-const EXPORT_FOLDER: &str = "C:\\src\\qmk_firmware\\keyboards\\moonlander\\keymaps\\chrispetkau";
+const EXPORT_FOLDER: &str = "C:/src/qmk_firmware/keyboards/moonlander/keymaps/chrispetkau";
 
 mod temp_folder {
     use anyhow::Result;
@@ -117,13 +117,27 @@ fn main() -> Result<()> {
     //     println!("{:?}", output.stderr);
     // }
 
-    // Stage and commit all changes via git.
-
     // Invoke "C:\Program Files (x86)\Wally\Wally.exe" to flash.
     // Filename is "C:\src\qmk_firmware\moonlander_chrispetkau.bin".
-    println!("Flashing keyboard...");
-    let output = Command::new("C:/Program Files (x86)/Wally/Wally.exe")
-        .args(["C:/src/qmk_firmware/moonlander_chrispetkau.bin"])
+    // println!("Flashing keyboard...");
+    // let output = Command::new("C:/Program Files (x86)/Wally/Wally.exe")
+    //     .args(["C:/src/qmk_firmware/moonlander_chrispetkau.bin"])
+    //     .output()?;
+    // if output.status.success() {
+    //     println!("...done.");
+    // } else {
+    //     println!("...failed.");
+    //     println!("StdOut:");
+    //     println!("{:?}", output.stdout);
+    //     println!("StdErr:");
+    //     println!("{:?}", output.stderr);
+    // }
+
+    // Stage and commit all changes via git.
+    println!("Committing changes...");
+    let output = Command::new("git")
+        .current_dir(EXPORT_FOLDER)
+        .args(["commit", "-am", &zip])
         .output()?;
     if output.status.success() {
         println!("...done.");
