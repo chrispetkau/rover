@@ -10,17 +10,43 @@ const EXPORT_FOLDER: &str = "C:\\src\\qmk_firmware\\keyboards\\moonlander\\keyma
 
 const TEMP_FOLDER: &str = "temp";
 
+struct TempFolder(bool);
+
+impl TempFolder {
+    fn new() -> Result<Self> {
+        print!("Manifesting '{TEMP_FOLDER}' folder...");
+        fs::create_dir(TEMP_FOLDER)?;
+        println!("done.");
+        Ok(Self(true))
+    }
+
+    fn delete(mut self) -> Result<()> {
+        print!("Deleting '{TEMP_FOLDER}' folder and all contents...");
+        fs::remove_dir_all(TEMP_FOLDER)?;
+        println!("done.");
+        self.0 = false;
+        Ok(())
+    }
+}
+
+impl Drop for TempFolder {
+    fn drop(&mut self) {
+        return_unless!(self.0);
+        print!("Deleting '{TEMP_FOLDER}' folder and all contents...");
+        match fs::remove_dir_all(TEMP_FOLDER) {
+            Err(error) => println!("Error deleting '{TEMP_FOLDER}' folder: {error}"),
+            Ok(_) => println!("done."),
+        }        
+    }
+}
+
 fn main() -> Result<()> {
     // Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
     print!("Locating most recent moonlander source code .zip file...");
     let zip = find_zip()?;
     println!("found '{zip}'.");
 
-    // Manifest a "temp" folder.
-    // TODO temp folder needs to be scoped such that it always gets cleaned up
-    print!("Manifesting '{TEMP_FOLDER}' folder...");
-    fs::create_dir(TEMP_FOLDER)?;
-    println!("done.");
+    let temp = TempFolder::new()?;
 
     // Extract files and put them in the "temp" folder.
     println!("Unzipping '{zip}' to '{TEMP_FOLDER}' folder...");
@@ -33,10 +59,7 @@ fn main() -> Result<()> {
 
     update_keymap_c();
 
-    // Delete "temp" folder and all contents.
-    print!("Deleting '{TEMP_FOLDER}' folder and all contents...");
-    fs::remove_dir_all(TEMP_FOLDER)?;
-    println!("done.");
+    temp.delete()?;
 
     // Invoke "C:\QMK_MSYS\QMK_MSYS.exe" to run "qmk compile -kb moonlander -km chrispetkau".
 
