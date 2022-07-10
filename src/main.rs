@@ -121,6 +121,19 @@ fn main() -> Result<()> {
 
     // Invoke "C:\Program Files (x86)\Wally\Wally.exe" to flash.
     // Filename is "C:\src\qmk_firmware\moonlander_chrispetkau.bin".
+    println!("Flashing keyboard...");
+    let output = Command::new("C:/Program Files (x86)/Wally/Wally.exe")
+        .args(["C:/src/qmk_firmware/moonlander_chrispetkau.bin"])
+        .output()?;
+    if output.status.success() {
+        println!("...done.");
+    } else {
+        println!("...failed.");
+        println!("StdOut:");
+        println!("{:?}", output.stdout);
+        println!("StdErr:");
+        println!("{:?}", output.stderr);
+    }
 
     Ok(())
 }
