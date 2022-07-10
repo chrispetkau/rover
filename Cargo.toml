@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.58"
+zip = "0.6.2"
+guard = { path = "C:\\src\\guard" }

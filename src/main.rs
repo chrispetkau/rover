@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
-use std::fs;
+use guard::*;
+use std::{fs, io, path::Path};
 
 // Import folder is hard-coded to "C:\Users\Chris Petkau\Downloads".
 const IMPORT_FOLDER: &str = "C:\\Users\\Chris Petkau\\Downloads";
@@ -16,11 +17,15 @@ fn main() -> Result<()> {
     println!("found '{zip}'.");
 
     // Manifest a "temp" folder.
+    // TODO temp folder needs to be scoped such that it always gets cleaned up
     print!("Manifesting '{TEMP_FOLDER}' folder...");
     fs::create_dir(TEMP_FOLDER)?;
     println!("done.");
 
     // Extract files and put them in the "temp" folder.
+    println!("Unzipping '{zip}' to '{TEMP_FOLDER}' folder...");
+    extract_files(&zip)?;
+    println!("...done.");
 
     // Update "config.h" via "temp\config.h": copy every line, then #include "petkau_config.inl".
 
@@ -66,6 +71,36 @@ fn find_zip() -> Result<String> {
         .max_by_key(|(_, time_stamp)| *time_stamp)
         .ok_or_else(|| anyhow!("No .zip file found."))?
         .0)
+}
+
+fn extract_files(zip: &str) -> Result<()> {
+    let mut zip = zip::ZipArchive::new(fs::File::open(Path::new(IMPORT_FOLDER).join(&zip))?)?;
+    for i in 0..zip.len() {
+        let mut file = zip.by_index(i)?;
+        let file_name = file.name();
+        continue_unless!(file_name.starts_with("moonlander_colemak_coder_source"));
+        continue_unless!(!file_name.ends_with('/'));
+        let outpath = match file.enclosed_name() {
+            Some(path) => {
+                let path = Path::new(
+                    path.components()
+                        .last()
+                        .ok_or_else(|| anyhow!("Empty filename in .zip file."))?
+                        .as_os_str(),
+                );
+                Path::new(TEMP_FOLDER).join(path)
+            }
+            None => continue,
+        };
+        println!(
+            "Entry {} is a file. Extracting \"{}\" ({} bytes)",
+            i,
+            outpath.display(),
+            file.size()
+        );
+        io::copy(&mut file, &mut fs::File::create(&outpath)?)?;
+    }
+    Ok(())
 }
 
 fn update_keymap_c() {
