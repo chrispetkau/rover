@@ -5,6 +5,7 @@ use std::{
     fs,
     io::{self, Write},
     path::Path,
+    process::{Command, ExitStatus},
 };
 
 // Import folder is hard-coded to "C:\Users\Chris Petkau\Downloads".
@@ -53,7 +54,7 @@ mod temp_folder {
 
 fn main() -> Result<()> {
     // Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
-    print!("Locating most recent moonlander source code .zip file...");
+    print!("Locating most recent moonlander_colemak_coder source code .zip file...");
     let zip = find_zip()?;
     println!("found '{zip}'.");
 
@@ -86,6 +87,35 @@ fn main() -> Result<()> {
     temp_folder.delete()?;
 
     // Invoke "C:\QMK_MSYS\QMK_MSYS.exe" to run "qmk compile -kb moonlander -km chrispetkau".
+    // println!("Compiling QMK firmware...");
+    // let output = Command::new("C:/QMK_MSYS/conemu/ConEmu64.exe")
+    //     .current_dir("C:/QMK_MSYS/conemu")
+    //     .args([
+    //         "-NoSingle",
+    //         "-NoUpdate",
+    //         "-icon",
+    //         "C:/QMK_MSYS/icon.ico",
+    //         "-title",
+    //         "QMK MSYS",
+    //         "-run",
+    //         "C:/QMK_MSYS/usr/bin/bash.exe",
+    //         "-l",
+    //         "-i",
+    //         //"-t",
+    //         // "-c",
+    //         // "\"qmk compile -kb moonlander -km chrispetkau\"",
+    //         //"-cur_console:m:\"\"",
+    //     ])
+    //     .output()?;
+    // if output.status.success() {
+    //     println!("...done.");
+    // } else {
+    //     println!("...failed.");
+    //     println!("StdOut:");
+    //     println!("{:?}", output.stdout);
+    //     println!("StdErr:");
+    //     println!("{:?}", output.stderr);
+    // }
 
     // Stage and commit all changes via git.
 
@@ -95,7 +125,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
+/// Find the most recent downloaded file with prefix "moonlander_colemak_coder_" and extension ".zip".
 fn find_zip() -> Result<String> {
     Ok(fs::read_dir(IMPORT_FOLDER)?
         .filter_map(|entry| {
@@ -109,7 +139,7 @@ fn find_zip() -> Result<String> {
             }
         })
         .filter_map(|(file_name, time_stamp)| {
-            if file_name.starts_with("moonlander_") && file_name.ends_with(".zip") {
+            if file_name.starts_with("moonlander_colemak_coder_") && file_name.ends_with(".zip") {
                 Some((file_name, time_stamp))
             } else {
                 None
