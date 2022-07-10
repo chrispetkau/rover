@@ -1,3 +1,4 @@
+use crate::temp_folder::TempFolder;
 use anyhow::{anyhow, Result};
 use guard::*;
 use std::{fs, io, path::Path};
@@ -8,35 +9,41 @@ const IMPORT_FOLDER: &str = "C:\\Users\\Chris Petkau\\Downloads";
 // Export folder is hard-coded to "C:\src\qmk_firmware\keyboards\moonlander\keymaps\chrispetkau".
 const EXPORT_FOLDER: &str = "C:\\src\\qmk_firmware\\keyboards\\moonlander\\keymaps\\chrispetkau";
 
-const TEMP_FOLDER: &str = "temp";
+mod temp_folder {
+    use anyhow::Result;
+    use guard::*;
+    use std::fs;
 
-struct TempFolder(bool);
+    pub(crate) const NAME: &str = "temp";
 
-impl TempFolder {
-    fn new() -> Result<Self> {
-        print!("Manifesting '{TEMP_FOLDER}' folder...");
-        fs::create_dir(TEMP_FOLDER)?;
-        println!("done.");
-        Ok(Self(true))
+    pub(crate) struct TempFolder(bool);
+
+    impl TempFolder {
+        pub(crate) fn new() -> Result<Self> {
+            print!("Manifesting '{NAME}' folder...");
+            fs::create_dir(NAME)?;
+            println!("done.");
+            Ok(Self(true))
+        }
+
+        pub(crate) fn delete(mut self) -> Result<()> {
+            print!("Deleting '{NAME}' folder and all contents...");
+            fs::remove_dir_all(NAME)?;
+            println!("done.");
+            self.0 = false;
+            Ok(())
+        }
     }
 
-    fn delete(mut self) -> Result<()> {
-        print!("Deleting '{TEMP_FOLDER}' folder and all contents...");
-        fs::remove_dir_all(TEMP_FOLDER)?;
-        println!("done.");
-        self.0 = false;
-        Ok(())
-    }
-}
-
-impl Drop for TempFolder {
-    fn drop(&mut self) {
-        return_unless!(self.0);
-        print!("Deleting '{TEMP_FOLDER}' folder and all contents...");
-        match fs::remove_dir_all(TEMP_FOLDER) {
-            Err(error) => println!("Error deleting '{TEMP_FOLDER}' folder: {error}"),
-            Ok(_) => println!("done."),
-        }        
+    impl Drop for TempFolder {
+        fn drop(&mut self) {
+            return_unless!(self.0);
+            print!("Deleting '{NAME}' folder and all contents...");
+            match fs::remove_dir_all(NAME) {
+                Err(error) => println!("Error deleting '{NAME}' folder: {error}"),
+                Ok(_) => println!("done."),
+            }
+        }
     }
 }
 
@@ -46,10 +53,10 @@ fn main() -> Result<()> {
     let zip = find_zip()?;
     println!("found '{zip}'.");
 
-    let temp = TempFolder::new()?;
+    let temp_folder = TempFolder::new()?;
 
     // Extract files and put them in the "temp" folder.
-    println!("Unzipping '{zip}' to '{TEMP_FOLDER}' folder...");
+    println!("Unzipping '{zip}' to '{}' folder...", temp_folder::NAME);
     extract_files(&zip)?;
     println!("...done.");
 
@@ -59,7 +66,7 @@ fn main() -> Result<()> {
 
     update_keymap_c();
 
-    temp.delete()?;
+    temp_folder.delete()?;
 
     // Invoke "C:\QMK_MSYS\QMK_MSYS.exe" to run "qmk compile -kb moonlander -km chrispetkau".
 
