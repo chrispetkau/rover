@@ -55,7 +55,6 @@ fn main() -> Result<()> {
 
     let temp_folder = TempFolder::new()?;
 
-    // Extract files and put them in the "temp" folder.
     println!("Unzipping '{zip}' to '{}' folder...", temp_folder::NAME);
     extract_files(&zip)?;
     println!("...done.");
@@ -103,6 +102,7 @@ fn find_zip() -> Result<String> {
         .0)
 }
 
+/// Extract files and put them in the "temp" folder.
 fn extract_files(zip: &str) -> Result<()> {
     let mut zip = zip::ZipArchive::new(fs::File::open(Path::new(IMPORT_FOLDER).join(&zip))?)?;
     for i in 0..zip.len() {
@@ -118,7 +118,7 @@ fn extract_files(zip: &str) -> Result<()> {
                         .ok_or_else(|| anyhow!("Empty filename in .zip file."))?
                         .as_os_str(),
                 );
-                Path::new(TEMP_FOLDER).join(path)
+                Path::new(temp_folder::NAME).join(path)
             }
             None => continue,
         };
