@@ -7,11 +7,18 @@ const IMPORT_FOLDER: &str = "C:\\Users\\Chris Petkau\\Downloads";
 // Export folder is hard-coded to "C:\src\qmk_firmware\keyboards\moonlander\keymaps\chrispetkau".
 const EXPORT_FOLDER: &str = "C:\\src\\qmk_firmware\\keyboards\\moonlander\\keymaps\\chrispetkau";
 
+const TEMP_FOLDER: &str = "temp";
+
 fn main() -> Result<()> {
     // Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
+    print!("Locating most recent moonlander source code .zip file...");
     let zip = find_zip()?;
+    println!("found '{zip}'.");
 
     // Manifest a "temp" folder.
+    print!("Manifesting '{TEMP_FOLDER}' folder...");
+    fs::create_dir(TEMP_FOLDER)?;
+    println!("done.");
 
     // Extract files and put them in the "temp" folder.
 
@@ -22,6 +29,9 @@ fn main() -> Result<()> {
     update_keymap_c();
 
     // Delete "temp" folder and all contents.
+    print!("Deleting '{TEMP_FOLDER}' folder and all contents...");
+    fs::remove_dir_all(TEMP_FOLDER)?;
+    println!("done.");
 
     // Invoke "C:\QMK_MSYS\QMK_MSYS.exe" to run "qmk compile -kb moonlander -km chrispetkau".
 
@@ -33,6 +43,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/// Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
 fn find_zip() -> Result<String> {
     Ok(fs::read_dir(IMPORT_FOLDER)?
         .filter_map(|entry| {
