@@ -1,7 +1,11 @@
 use crate::temp_folder::TempFolder;
 use anyhow::{anyhow, Result};
 use guard::*;
-use std::{fs, io, path::Path};
+use std::{
+    fs,
+    io::{self, Write},
+    path::Path,
+};
 
 // Import folder is hard-coded to "C:\Users\Chris Petkau\Downloads".
 const IMPORT_FOLDER: &str = "C:\\Users\\Chris Petkau\\Downloads";
@@ -60,8 +64,22 @@ fn main() -> Result<()> {
     println!("...done.");
 
     // Update "config.h" via "temp\config.h": copy every line, then #include "petkau_config.inl".
+    println!("Updating config.h...");
+    let config = &mut fs::File::create(Path::new(EXPORT_FOLDER).join("config.h"))?;
+    io::copy(
+        &mut fs::File::open(Path::new(temp_folder::NAME).join("config.h"))?,
+        config,
+    )?;
+    writeln!(config, "#include \"petkau_config.inl\"")?;
+    println!("...done.");
 
     // Update "rules.mk" by just overwriting it. There are no customizations to this file.
+    println!("Updating rules.mk...");
+    io::copy(
+        &mut fs::File::open(Path::new(temp_folder::NAME).join("rules.mk"))?,
+        &mut fs::File::create(Path::new(EXPORT_FOLDER).join("rules.mk"))?,
+    )?;
+    println!("...done.");
 
     update_keymap_c();
 
