@@ -91,31 +91,29 @@ fn main() -> Result<()> {
     temp_folder.delete()?;
 
     // Invoke "C:\QMK_MSYS\QMK_MSYS.exe" to run "qmk compile -kb moonlander -km chrispetkau".
-    // print!("Compiling QMK firmware...");
-    // let output = Command::new("C:/QMK_MSYS/conemu/ConEmu64.exe")
-    //     .current_dir("C:/QMK_MSYS/conemu")
-    //     .args([
-    //         "-NoSingle",
-    //         "-NoUpdate",
-    //         "-icon",
-    //         "C:/QMK_MSYS/icon.ico",
-    //         "-title",
-    //         "QMK MSYS",
-    //         "-run",
-    //         "C:/QMK_MSYS/usr/bin/bash.exe",
-    //         "-l",
-    //         "-i",
-    //         //"-t",
-    //         // "-c",
-    //         // "\"qmk compile -kb moonlander -km chrispetkau\"",
-    //         //"-cur_console:m:\"\"",
-    //     ])
-    //     .output()?;
-    // if output.status.success() {
-    //     println!("done.");
-    // } else {
-    //     println!("failed.");
-    // }
+    print!("Compiling QMK firmware...");
+    // > C:/QMK_MSYS/conemu/ConEmu64.exe -NoSingle -NoUpdate -icon "C:/QMK_MSYS/icon.ico" -title "QMK MSYS" -run "C:/QMK_MSYS/usr/bin/bash.exe" -l -t -c "qmk compile -kb moonlander -km chrispetkau"
+    let output = Command::new("C:/QMK_MSYS/conemu/ConEmu64.exe")
+        .args([
+            "-NoSingle",
+            "-NoUpdate",
+            "-icon",
+            "C:/QMK_MSYS/icon.ico",
+            "-title",
+            "QMK MSYS",
+            "-run",
+            "C:/QMK_MSYS/usr/bin/bash.exe",
+            "-l",
+            "-t",
+            "-c",
+            "qmk compile -kb moonlander -km chrispetkau"
+        ])
+        .output()?;
+    if output.status.success() {
+        println!("done.");
+    } else {
+        println!("failed.");
+    }
 
     // Invoke "C:\Program Files (x86)\Wally\Wally.exe" to flash.
     // Filename is "C:\src\qmk_firmware\moonlander_chrispetkau.bin".
