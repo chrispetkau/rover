@@ -303,6 +303,7 @@ fn update_keymap_c() -> Result<()> {
             KeymapSection::TapDanceDefs => writeln!(petkau_tap_dance_inl, "{line}")?,
         }
     }
+    writeln!(keymap_c, "#include \"petkau_tapping_term.inl\"")?;
     writeln!(keymap_c, "#include \"petkau_tap_dance.inl\"")?;
 
     // Map macros by parsing the arguments of the SEND_STRING calls in macro_defs and converting them into strings.
