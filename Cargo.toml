@@ -9,3 +9,5 @@ edition = "2021"
 anyhow = "1.0.58"
 zip = "0.6.2"
 guard = { path = "C:\\src\\guard" }
+regex = "1.6.0"
+enum-iterator = "1.1.3"
