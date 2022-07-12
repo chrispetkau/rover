@@ -324,16 +324,14 @@ fn update_keymap_c() -> Result<()> {
         let mut input_macro = String::new();
         let send_string = &send_string[1];
         for shift_or_ss_tap in shift_or_ss_taps.captures_iter(send_string) {
-            for i in 1..shift_or_ss_tap.len() {
-                let full_text = &shift_or_ss_tap[1];
-                let shifted = shift_taps.is_match(full_text);
-                let qmk_name = if shifted {
-                    shift_taps.captures(full_text).unwrap()[1].to_string()
-                } else {
-                    ss_taps.captures(full_text).unwrap()[1].to_string()
-                };
-                input_macro.push(char_from_qmk_name(&qmk_name, shifted)?);
-            }
+            let full_text = &shift_or_ss_tap[1];
+            let shifted = shift_taps.is_match(full_text);
+            let qmk_name = if shifted {
+                shift_taps.captures(full_text).unwrap()[1].to_string()
+            } else {
+                ss_taps.captures(full_text).unwrap()[1].to_string()
+            };
+            input_macro.push(char_from_qmk_name(&qmk_name, shifted)?);
         }
         macro_prefixes.push(input_macro.to_ascii_lowercase());
     }
