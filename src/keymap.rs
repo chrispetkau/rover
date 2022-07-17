@@ -47,7 +47,6 @@ pub(crate) fn update_keymap_c() -> Result<()> {
     let mut input_section = KeymapSection::Prepocessing;
     let mut input_macro_defs = String::new();
     let mut keymap = String::new();
-    let mut macro_count = 0;
     for line in io::BufReader::new(input).lines() {
         let line = line?;
         match input_section {
@@ -63,8 +62,6 @@ pub(crate) fn update_keymap_c() -> Result<()> {
                 if line == "enum tap_dance_codes {" {
                     writeln!(petkau_tap_dance_inl, "{line}")?;
                     input_section = KeymapSection::TapDanceEnum;
-                } else if line != "};\n" {
-                    macro_count += 1;
                 }
             }
             KeymapSection::TapDanceEnum => {
@@ -116,64 +113,109 @@ pub(crate) fn update_keymap_c() -> Result<()> {
     writeln!(keymap_c, "#include \"petkau_tapping_term.inl\"")?;
     writeln!(keymap_c, "#include \"petkau_tap_dance.inl\"")?;
 
-    // Map macros by parsing the arguments of the SEND_STRING calls in macro_defs and converting them into strings.
-    // These strings are then matched against the strings known to correspond to hard-coded macros. Strings
-    // extracted from the macro_defs may not be complete and so partial matches must be considered. Multiple matches
-    // may occur and constitute an error: strings in macro_defs must match only a single macro in petkau_macros.inl.
-    // This produces an array whose indices map to ST_MACRO_# and contents map to the corresponding enum value of the
-    // hard-coded macro enum in petkau_macros.inl.
-    let mut macro_prefixes: Vec<String> = Vec::with_capacity(macro_count);
-    let send_strings = Regex::new(r"SEND_STRING\((.+)\);\n")?;
-    let ss_taps = Regex::new(r"SS_TAP\(X_([[:alnum:]]+)\)")?;
-    let shift_taps = Regex::new(r"(?:SS_LSFT|SS_RSFT)\(SS_TAP\(X_([[:alnum:]]+)\)\)")?;
-    let shift_or_ss_taps = Regex::new(
-        r"((?:SS_LSFT|SS_RSFT)\(SS_TAP\(X_(?:[[:alnum:]]+)\)\)|SS_TAP\(X_(?:[[:alnum:]]+)\))",
-    )?;
-    for send_string in send_strings.captures_iter(&input_macro_defs) {
-        let mut input_macro = String::new();
-        let send_string = &send_string[1];
-        for shift_or_ss_tap in shift_or_ss_taps.captures_iter(send_string) {
-            let full_text = &shift_or_ss_tap[1];
-            let shifted = shift_taps.is_match(full_text);
-            let qmk_name = if shifted {
-                shift_taps.captures(full_text).unwrap()[1].to_string()
-            } else {
-                ss_taps.captures(full_text).unwrap()[1].to_string()
-            };
-            input_macro.push(qmk_name::to_char(&qmk_name, shifted)?);
-        }
-        macro_prefixes.push(input_macro.to_ascii_lowercase());
-    }
-
-    // Map macro_prefixes to macros.
-    let mut macros: Vec<Macro> = Vec::with_capacity(macro_count);
-    for macro_prefix in &macro_prefixes {
-        let mut matching_macros =
-            all::<Macro>().filter(|&value| String::from(value).starts_with(macro_prefix));
-        match matching_macros.clone().count() {
-            0 => return Err(anyhow!("No macro matches '{macro_prefix}'")),
-            1 => macros.push(matching_macros.next().unwrap()),
-            _ => {
-                return Err(anyhow!(
-                    "Multiple macro matches for '{macro_prefix}': {:?}",
-                    matching_macros.collect::<Vec<_>>()
-                ))
-            }
-        };
-    }
-
-    // Create custom_keymap by replacing all occurrences of "ST_MACRO_#" in keymap with the corresponding entry in the
-    // macro map.
-    let keymap = Regex::new(r"ST_MACRO_(\d+)")?.replace_all(&keymap, |captures: &Captures| {
-        format!(
-            "PETKAU_MACRO_{:?}",
-            macros[captures[1].parse::<usize>().unwrap()]
-        )
-    });
+    let macros = build_macro_translator(&input_macro_defs)?;
 
     writeln!(keymap_c)?;
+    writeln!(keymap_c, "enum custom_keycodes")?;
+    writeln!(keymap_c, "{{")?;
+    let custom_keycodes = macros
+        .iter()
+        .enumerate()
+        .filter_map(|(i, petkau_macro)| {
+            if petkau_macro.is_none() {
+                Some(format!("\tST_MACRO_{i}"))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(",\n");
+    write!(keymap_c, "{custom_keycodes}",)?;
+    writeln!(keymap_c)?;
+    writeln!(keymap_c, "}};")?;
+
+    // Write each macro def without a corresponding "petkau" macro.
+    // Forward the default case to match the "petkau" macros.
+    let cases = Regex::new(r"case ST_MACRO_(\d+):[[:space:]]+if \(record->event\.pressed\) \{[[:space:]]+SEND_STRING\(.+\);[[:space:]]+\}[[:space:]]+break;[[:space:]]+")?;
+    let macro_defs = cases.replace_all(
+        &input_macro_defs,
+        |captures: &Captures| {
+            let i = captures[1].parse::<usize>().unwrap();
+            macros[i].map_or(captures[0].to_string(), |_| String::new())
+        },
+    );
+    let macro_defs = Regex::new("(?s:case RGB_SLD:(?:.+)return false;\n)")?.replace(
+        &macro_defs,
+        "default: return process_record_petkau(keycode, record);\n",
+    );
+    writeln!(keymap_c)?;
+    write!(keymap_c, "{macro_defs}")?;
+
+    // Write the keymap with "petkau" macros installed.
+    let keymap = Regex::new(r"ST_MACRO_(\d+)")?.replace_all(&keymap, |captures: &Captures| {
+        let i = captures[1].parse::<usize>().unwrap();
+        if let Some(petkau_macro) = macros[i] {
+            format!("PETKAU_MACRO_{:?}", petkau_macro)
+        } else {
+            captures[0].to_string()
+        }
+    });
     write!(keymap_c, "{keymap}")?;
 
     println!("done.");
     Ok(())
+}
+
+/// Map macro indices (i.e. the # in ST_MACRO_#) to the corresponding Macro enum value (which may be None).
+fn build_macro_translator(input_macro_defs: &str) -> Result<Vec<Option<Macro>>, anyhow::Error> {
+    let tap = "SS_TAP\\(X_([[:alnum:]]+)\\)";
+    let shift = "SS_(?:L|R)SFT";
+    let shift_tap = &format!("{shift}\\({tap}\\)");
+    let control = "SS_(?:L|R)CTL";
+    let control_tap = &format!("{control}\\({tap}\\)");
+    let taps = Regex::new(tap)?;
+    let control_taps = Regex::new(control_tap)?;
+    let shift_taps = Regex::new(shift_tap)?;
+    let all_taps = Regex::new(&format!("{control_tap}|{shift_tap}|{tap}"))?;
+    Ok(Regex::new(r"SEND_STRING\((.+)\);\n")?
+        .captures_iter(input_macro_defs)
+        .map(|send_string| {
+            all_taps
+                .captures_iter(&send_string[1])
+                .map(|tap| {
+                    let full_text = &tap[0];
+                    if control_taps.is_match(full_text) {
+                        return Err(anyhow!("Macro uses Ctrl."));
+                    }
+                    let shifted = shift_taps.is_match(full_text);
+                    let qmk_name = if shifted {
+                        shift_taps.captures(full_text).unwrap()[1].to_string()
+                    } else {
+                        taps.captures(full_text).unwrap()[1].to_string()
+                    };
+                    qmk_name::to_char(&qmk_name, shifted)
+                })
+                .collect::<Result<String>>()
+                .map_or(None, |macro_prefix| Some(macro_prefix.to_ascii_lowercase()))
+                .and_then(|macro_prefix| {
+                    let mut matching_macros =
+                        all::<Macro>().filter(|&value| String::from(value).starts_with(&macro_prefix));
+                    match matching_macros.clone().count() {
+                        0 => {
+                            println!("No macro matches '{macro_prefix}'. Using it literally.");
+                            None
+                        }
+                        1 => Some(matching_macros.next().unwrap()),
+                        _ => {
+                            let first = matching_macros.next().unwrap();
+                            println!(
+                                "Multiple macro matches for '{macro_prefix}': {:?}. Using the first match '{}'.",
+                                matching_macros.collect::<Vec<_>>(),String::from(first)
+                            );
+                            Some(first)
+                        }
+                    }
+            })
+        })
+        .collect::<Vec<_>>())
 }

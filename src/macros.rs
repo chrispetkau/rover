@@ -75,11 +75,29 @@ impl From<Macro> for String {
     }
 }
 
+impl Macro {
+    fn into_send_string(self) -> Result<String> {
+        let value = String::from(self);
+        let mut send_string = "SEND_STRING(".to_string();
+        let mut first = true;
+        for c in value.chars() {
+            if first {
+                first = false;
+            } else {
+                send_string.push_str(" PETKAU_DELAY ");
+            }
+            send_string.push_str(&qmk_name::from_char(c)?);
+        }
+        send_string.push_str(");");
+        Ok(send_string)
+    }
+}
+
 pub(crate) fn export_petkau_macros_inl() -> Result<()> {
     print!("Exporting petkau_macros.inl...");
     let petkau_macros_inl =
         &mut fs::File::create(Path::new(EXPORT_FOLDER).join("petkau_macros.inl"))?;
-    writeln!(petkau_macros_inl, "enum custom_keycodes")?;
+    writeln!(petkau_macros_inl, "enum petkau_keycodes")?;
     writeln!(petkau_macros_inl, "{{")?;
     writeln!(petkau_macros_inl, "\tRGB_SLD = ML_SAFE_RANGE,")?;
     for value in all::<Macro>() {
@@ -91,42 +109,30 @@ pub(crate) fn export_petkau_macros_inl() -> Result<()> {
     writeln!(petkau_macros_inl)?;
     writeln!(
         petkau_macros_inl,
-        "bool process_record_user(uint16_t keycode, keyrecord_t *record)"
+        "bool process_record_petkau(uint16_t keycode, keyrecord_t *record)"
     )?;
     writeln!(petkau_macros_inl, "{{")?;
+    writeln!(
+        petkau_macros_inl,
+        "\tif (!record->event.pressed) return true;"
+    )?;
     writeln!(petkau_macros_inl, "\tswitch (keycode)")?;
     writeln!(petkau_macros_inl, "\t{{")?;
     for value in all::<Macro>() {
-        writeln!(petkau_macros_inl, "\tcase PETKAU_MACRO_{:?}:", value)?;
-        writeln!(petkau_macros_inl, "\t\tif (record->event.pressed)")?;
-        writeln!(petkau_macros_inl, "\t\t\t{}", make_send_string(value)?)?;
-        writeln!(petkau_macros_inl, "\t\tbreak;")?;
+        writeln!(
+            petkau_macros_inl,
+            "\tcase PETKAU_MACRO_{:?}: {} break;",
+            value,
+            value.into_send_string()?
+        )?;
     }
-    writeln!(petkau_macros_inl, "\tcase RGB_SLD:")?;
     writeln!(
         petkau_macros_inl,
-        "\t\tif (record->event.pressed) rgblight_mode(1);"
+        "\tcase RGB_SLD: rgblight_mode(1); return false;"
     )?;
-    writeln!(petkau_macros_inl, "\t\treturn false;")?;
     writeln!(petkau_macros_inl, "\t}}")?;
     writeln!(petkau_macros_inl, "\treturn true;")?;
     writeln!(petkau_macros_inl, "}};")?;
     println!("done.");
     Ok(())
-}
-
-fn make_send_string(value: Macro) -> Result<String> {
-    let value = String::from(value);
-    let mut send_string = "SEND_STRING(".to_string();
-    let mut first = true;
-    for c in value.chars() {
-        if first {
-            first = false;
-        } else {
-            send_string.push_str(" PETKAU_DELAY ");
-        }
-        send_string.push_str(&qmk_name::from_char(c)?);
-    }
-    send_string.push_str(");");
-    Ok(send_string)
 }
