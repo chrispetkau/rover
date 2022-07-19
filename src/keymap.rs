@@ -115,9 +115,6 @@ pub(crate) fn update_keymap_c() -> Result<()> {
 
     let macros = build_macro_translator(&input_macro_defs)?;
 
-    writeln!(keymap_c)?;
-    writeln!(keymap_c, "enum custom_keycodes")?;
-    writeln!(keymap_c, "{{")?;
     let custom_keycodes = macros
         .iter()
         .enumerate()
@@ -128,22 +125,24 @@ pub(crate) fn update_keymap_c() -> Result<()> {
                 None
             }
         })
-        .collect::<Vec<String>>()
-        .join(",\n");
-    write!(keymap_c, "{custom_keycodes}",)?;
-    writeln!(keymap_c)?;
-    writeln!(keymap_c, "}};")?;
+        .collect::<Vec<String>>();
+    if !custom_keycodes.is_empty() {
+        writeln!(keymap_c)?;
+        writeln!(keymap_c, "enum custom_keycodes")?;
+        writeln!(keymap_c, "{{")?;
+        writeln!(keymap_c, "{}", custom_keycodes.join(",\n"))?;
+        writeln!(keymap_c, "}};")?;
+    }
 
     // Write each macro def without a corresponding "petkau" macro.
     // Forward the default case to match the "petkau" macros.
-    let cases = Regex::new(r"case ST_MACRO_(\d+):[[:space:]]+if \(record->event\.pressed\) \{[[:space:]]+SEND_STRING\(.+\);[[:space:]]+\}[[:space:]]+break;[[:space:]]+")?;
-    let macro_defs = cases.replace_all(
-        &input_macro_defs,
-        |captures: &Captures| {
-            let i = captures[1].parse::<usize>().unwrap();
-            macros[i].map_or(captures[0].to_string(), |_| String::new())
-        },
-    );
+    let cases = Regex::new(
+        r"case ST_MACRO_(\d+):[[:space:]]+if \(record->event\.pressed\) \{[[:space:]]+SEND_STRING\(.+\);[[:space:]]+\}[[:space:]]+break;[[:space:]]+",
+    )?;
+    let macro_defs = cases.replace_all(&input_macro_defs, |captures: &Captures| {
+        let i = captures[1].parse::<usize>().unwrap();
+        macros[i].map_or(captures[0].to_string(), |_| String::new())
+    });
     let macro_defs = Regex::new("(?s:case RGB_SLD:(?:.+)return false;\n)")?.replace(
         &macro_defs,
         "default: return process_record_petkau(keycode, record);\n",
