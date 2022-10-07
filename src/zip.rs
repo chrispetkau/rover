@@ -1,11 +1,11 @@
-use std::{fs, io, path::Path};
 use anyhow::{anyhow, Result};
 use guard::continue_unless;
+use std::{fs, io, path::Path};
 
 // Import folder is hard-coded to "C:\Users\Chris Petkau\Downloads".
 const IMPORT_FOLDER: &str = "C:/Users/Chris Petkau/Downloads";
 
-/// Find the most recent downloaded file with prefix "moonlander_colemak_coder_" and extension ".zip".
+/// Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
 pub(crate) fn find_most_recent_download() -> Result<String> {
     Ok(fs::read_dir(IMPORT_FOLDER)?
         .filter_map(|entry| {
@@ -19,7 +19,7 @@ pub(crate) fn find_most_recent_download() -> Result<String> {
             }
         })
         .filter_map(|(file_name, time_stamp)| {
-            if file_name.starts_with("moonlander_colemak_coder_") && file_name.ends_with(".zip") {
+            if file_name.starts_with("moonlander_") && file_name.ends_with(".zip") {
                 Some((file_name, time_stamp))
             } else {
                 None
@@ -36,7 +36,7 @@ pub(crate) fn extract_files_to_temp(zip: &str) -> Result<()> {
     for i in 0..zip.len() {
         let mut file = zip.by_index(i)?;
         let file_name = file.name();
-        continue_unless!(file_name.starts_with("moonlander_colemak_coder_source"));
+        continue_unless!(file_name.starts_with("moonlander_"));
         continue_unless!(!file_name.ends_with('/'));
         let outpath = match file.enclosed_name() {
             Some(path) => {

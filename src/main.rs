@@ -19,7 +19,7 @@ mod zip;
 
 fn main() -> Result<()> {
     // Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
-    print!("Locating most recent moonlander_colemak_coder source code .zip file...");
+    print!("Locating most recent moonlander_* source code .zip file...");
     let zip = zip::find_most_recent_download()?;
     println!("found '{zip}'.");
 
