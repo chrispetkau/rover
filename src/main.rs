@@ -16,6 +16,7 @@ mod macros;
 mod qmk_name;
 mod temp_folder;
 mod zip;
+mod custom_keycode;
 
 fn main() -> Result<()> {
     // Find the most recent downloaded file with prefix "moonlander_" and extension ".zip".
@@ -41,10 +42,12 @@ fn main() -> Result<()> {
 
     // Update "rules.mk" by just overwriting it. There are no customizations to this file.
     print!("Updating rules.mk...");
+    let rules = &mut fs::File::create(Path::new(EXPORT_FOLDER).join("rules.mk"))?;
     io::copy(
         &mut fs::File::open(Path::new(temp_folder::NAME).join("rules.mk"))?,
-        &mut fs::File::create(Path::new(EXPORT_FOLDER).join("rules.mk"))?,
+        rules,
     )?;
+    writeln!(rules, "DYNAMIC_TAPPING_TERM_ENABLE = yes")?;
     println!("done.");
 
     keymap::update_keymap_c()?;
