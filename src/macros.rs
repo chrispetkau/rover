@@ -35,6 +35,7 @@ pub(crate) enum Macro {
     Auto,
     While,
     ReinterpretCast,
+    Function,
 }
 
 impl From<Macro> for String {
@@ -70,6 +71,7 @@ impl From<Macro> for String {
             Macro::Auto => "auto",
             Macro::While => "while",
             Macro::ReinterpretCast => "reinterpret_cast",
+            Macro::Function => "function",
         }
         .to_string()
     }
