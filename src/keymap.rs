@@ -20,7 +20,7 @@ enum KeymapSection {
 }
 
 pub(crate) fn update_keymap_c() -> Result<()> {
-    print!("Updating keymap.c...");
+    println!("Updating keymap.c...");
     let input = &mut fs::File::open(Path::new(temp_folder::NAME).join("keymap.c"))?;
     let keymap_c = &mut fs::File::create(Path::new(EXPORT_FOLDER).join("keymap.c"))?;
     let petkau_tap_dance_inl =
@@ -211,10 +211,13 @@ fn build_macro_code_translator(
                         all::<Macro>().filter(|&value| String::from(value).starts_with(&macro_code));
                     let macro_code_translation = match matching_macros.clone().count() {
                         0 => {
-                            println!("No macro matches '{macro_code}'. Using it literally.");
+                            println!("No macro matches macro code '{macro_code}'. Try to match custom keys next.");
                             None
                         }
-                        1 => Some(MacroCode::Macro(matching_macros.next().unwrap())),
+                        1 => {
+                            let matching_macro = matching_macros.next().unwrap();
+                            println!("Matched macro code '{macro_code}' to macro '{matching_macro:?}'.");
+                            Some(MacroCode::Macro(matching_macro))}
                         _ => {
                             let first = matching_macros.next().unwrap();
                             println!(
@@ -229,10 +232,14 @@ fn build_macro_code_translator(
                             all::<CustomKeycode>().filter(|&value| String::from(value).starts_with(&macro_code));
                         match matching_custom_keycodes.clone().count() {
                             0 => {
-                                println!("No custom key matches '{macro_code}'. Using it literally.");
+                                println!("No custom key matches macro code '{macro_code}'. Using it literally.");
                                 None
                             }
-                            1 => Some(MacroCode::CustomKeycode(matching_custom_keycodes.next().unwrap())),
+                            1 => {
+                                let custom_keycode =matching_custom_keycodes.next().unwrap();
+                                println!("Matched macro code '{macro_code}' to custom keycode '{custom_keycode:?}'.");
+                                Some(MacroCode::CustomKeycode( custom_keycode ))
+                            },
                             _ => {
                                 let first = matching_custom_keycodes.next().unwrap();
                                 println!(
