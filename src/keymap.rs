@@ -112,6 +112,7 @@ pub(crate) fn update_keymap_c() -> Result<()> {
     }
     writeln!(keymap_c, "#include \"petkau_tapping_term.inl\"")?;
     writeln!(keymap_c, "#include \"petkau_tap_dance.inl\"")?;
+    writeln!(keymap_c, "#include \"process_record_petkau.inl\"")?;
 
     let macro_code_translations = build_macro_code_translator(&input_macro_defs)?;
 

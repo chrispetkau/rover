@@ -111,13 +111,9 @@ pub(crate) fn export_petkau_macros_inl() -> Result<()> {
     writeln!(petkau_macros_inl)?;
     writeln!(
         petkau_macros_inl,
-        "bool process_record_petkau(uint16_t keycode, keyrecord_t *record)"
+        "bool process_record_macros(uint16_t keycode, keyrecord_t *record)"
     )?;
     writeln!(petkau_macros_inl, "{{")?;
-    writeln!(
-        petkau_macros_inl,
-        "\tif (!record->event.pressed) return true;"
-    )?;
     writeln!(petkau_macros_inl, "\tswitch (keycode)")?;
     writeln!(petkau_macros_inl, "\t{{")?;
     for value in all::<Macro>() {
@@ -127,10 +123,9 @@ pub(crate) fn export_petkau_macros_inl() -> Result<()> {
             value,
             value.into_send_string()?
         )?;
-    }
-    writeln!(
+    }writeln!(
         petkau_macros_inl,
-        "\tcase RGB_SLD: rgblight_mode(1); return false;"
+        "\tdefault: return false;"
     )?;
     writeln!(petkau_macros_inl, "\t}}")?;
     writeln!(petkau_macros_inl, "\treturn true;")?;
