@@ -59,7 +59,7 @@ pub(crate) fn update_keymap_c() -> Result<()> {
                 }
             }
             KeymapSection::MacroEnum => {
-                if line == "enum tap_dance_codes {" {
+                if line == "typedef struct {" {
                     writeln!(petkau_tap_dance_inl, "{line}")?;
                     input_section = KeymapSection::TapDanceEnum;
                 }
@@ -90,8 +90,8 @@ pub(crate) fn update_keymap_c() -> Result<()> {
                 }
             }
             KeymapSection::MacroDefs => {
-                if line == "typedef struct {" {
-                    writeln!(keymap_c, "{line}")?;
+                if line == "void tap_dance_tap_hold_finished(qk_tap_dance_state_t *state, void *user_data) {" {
+                    writeln!(petkau_tap_dance_inl, "{line}")?;
                     input_section = KeymapSection::TapDanceSetup;
                 } else {
                     input_macro_defs.push_str(&line);
@@ -103,7 +103,7 @@ pub(crate) fn update_keymap_c() -> Result<()> {
                     writeln!(petkau_tap_dance_inl, "{line}")?;
                     input_section = KeymapSection::TapDanceDefs;
                 } else {
-                    writeln!(keymap_c, "{line}")?;
+                    writeln!(petkau_tap_dance_inl, "{line}")?;
                 }
             }
             // Overwrite petkau_tap_dance.inl with tap_dance_defs.
