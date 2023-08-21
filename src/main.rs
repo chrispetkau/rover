@@ -71,7 +71,7 @@ fn main() -> Result<()> {
             "-l",
             "-t",
             "-c",
-            "qmk compile -kb moonlander -km chrispetkau",
+            "qmk compile -j 0 -kb moonlander -km chrispetkau",
         ]),
     )?;
 
